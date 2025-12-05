@@ -169,7 +169,7 @@ docker run -e MP_MESSAGING_OUTGOING_MQTT_THROUGHPUT_HOST=mqtt-broker \
 1. **Start an MQTT broker** (if you don't have one):
 
    ```bash
-   docker run -d -p 1883:1883 eclipse-mosquitto:2
+   docker run -d -p 1883:1883 eclipse-mosquitto:2.0
    ```
 
 2. **Configure the application** by editing `src/main/resources/application.properties`:
