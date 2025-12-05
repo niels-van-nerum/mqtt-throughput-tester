@@ -1,62 +1,279 @@
-# test-smallrye-throughput
+# MQTT Throughput Tester
 
-This project uses Quarkus, the Supersonic Subatomic Java Framework.
+A high-performance MQTT throughput testing tool built with Quarkus and SmallRye Reactive Messaging. This application generates a configurable stream of MQTT messages to test the throughput and performance of MQTT brokers.
 
-If you want to learn more about Quarkus, please visit its website: <https://quarkus.io/>.
+## Features
 
-## Running the application in dev mode
+- **Configurable throughput**: Set the desired messages per second rate
+- **Adjustable payload size**: Configure message payload size in bytes
+- **Real-time statistics**: Live monitoring of message rates and bandwidth
+- **Reactive architecture**: Built on SmallRye Reactive Messaging for high performance
+- **MQTT 3.1.1 support**: Compatible with any MQTT 3.1.1 broker
+- **Flexible deployment**: Run as JVM application, native executable, or Docker container
+- **Quality of Service**: Configurable QoS levels (default: QoS 0 for maximum throughput)
 
-You can run your application in dev mode that enables live coding using:
+## Prerequisites
 
-```shell script
-./mvnw quarkus:dev
+- Java 21 or later
+- Maven 3.8+ (or use the included Maven wrapper)
+- An MQTT broker (e.g., Mosquitto, HiveMQ, EMQX)
+
+## Configuration
+
+The application is configured through `src/main/resources/application.properties`. Key configuration parameters:
+
+### MQTT Broker Settings
+
+```properties
+mp.messaging.outgoing.mqtt-throughput.host=localhost
+mp.messaging.outgoing.mqtt-throughput.port=1883
+mp.messaging.outgoing.mqtt-throughput.username=
+mp.messaging.outgoing.mqtt-throughput.password=
+mp.messaging.outgoing.mqtt-throughput.topic=test/throughput
 ```
 
-> **_NOTE:_**  Quarkus now ships with a Dev UI, which is available in dev mode only at <http://localhost:8080/q/dev/>.
+### Throughput Settings
 
-## Packaging and running the application
+```properties
+# Payload size in bytes (default: 1024)
+throughput.payload-size=1024
 
-The application can be packaged using:
+# Target messages per second (default: 1000)
+throughput.messages-per-second=1000
 
-```shell script
+# Enable/disable statistics logging (default: true)
+throughput.stats.enabled=true
+```
+
+### Advanced MQTT Settings
+
+```properties
+# Auto-generate unique client ID for each run
+mp.messaging.outgoing.mqtt-throughput.auto-generated-client-id=true
+
+# Maximum number of messages in the inflight queue (default: 50000)
+mp.messaging.outgoing.mqtt-throughput.max-inflight-queue=50000
+
+# Quality of Service level: 0, 1, or 2 (default: 0)
+mp.messaging.outgoing.mqtt-throughput.qos=0
+```
+
+## Building the Application
+
+### Standard JAR
+
+```bash
 ./mvnw package
 ```
 
-It produces the `quarkus-run.jar` file in the `target/quarkus-app/` directory.
-Be aware that it’s not an _über-jar_ as the dependencies are copied into the `target/quarkus-app/lib/` directory.
+This produces the `quarkus-run.jar` file in the `target/quarkus-app/` directory.
 
-The application is now runnable using `java -jar target/quarkus-app/quarkus-run.jar`.
+### Uber JAR
 
-If you want to build an _über-jar_, execute the following command:
+To create a self-contained JAR with all dependencies:
 
-```shell script
+```bash
 ./mvnw package -Dquarkus.package.jar.type=uber-jar
 ```
 
-The application, packaged as an _über-jar_, is now runnable using `java -jar target/*-runner.jar`.
+### Native Executable
 
-## Creating a native executable
+For maximum performance, create a native executable:
 
-You can create a native executable using:
-
-```shell script
+```bash
+# With GraalVM installed
 ./mvnw package -Dnative
-```
 
-Or, if you don't have GraalVM installed, you can run the native executable build in a container using:
-
-```shell script
+# Using container build (no GraalVM installation required)
 ./mvnw package -Dnative -Dquarkus.native.container-build=true
 ```
 
-You can then execute your native executable with: `./target/test-smallrye-throughput-1.0-SNAPSHOT-runner`
+## Running the Application
 
-If you want to learn more about building native executables, please consult <https://quarkus.io/guides/maven-tooling>.
+### Development Mode
 
-## Provided Code
+Run with live coding and auto-reload:
 
-### REST
+```bash
+./mvnw quarkus:dev
+```
 
-Easily start your REST Web Services
+The Quarkus Dev UI is available at <http://localhost:8080/q/dev/>.
 
-[Related guide section...](https://quarkus.io/guides/getting-started-reactive#reactive-jax-rs-resources)
+### Production Mode
+
+#### From Standard JAR
+
+```bash
+java -jar target/quarkus-app/quarkus-run.jar
+```
+
+#### From Uber JAR
+
+```bash
+java -jar target/*-runner.jar
+```
+
+#### Native Executable
+
+```bash
+./target/test-smallrye-throughput-1.0-SNAPSHOT-runner
+```
+
+### With Custom Configuration
+
+Override configuration properties at runtime:
+
+```bash
+java -jar target/quarkus-app/quarkus-run.jar \
+  -Dmp.messaging.outgoing.mqtt-throughput.host=mqtt.example.com \
+  -Dmp.messaging.outgoing.mqtt-throughput.port=1883 \
+  -Dmp.messaging.outgoing.mqtt-throughput.topic=test/load \
+  -Dthroughput.payload-size=2048 \
+  -Dthroughput.messages-per-second=5000
+```
+
+## Docker Deployment
+
+### Building Docker Images
+
+Several Dockerfiles are provided for different deployment scenarios:
+
+#### JVM Container
+
+```bash
+./mvnw package
+docker build -f src/main/docker/Dockerfile.jvm -t mqtt-throughput-tester:jvm .
+```
+
+#### Native Container
+
+```bash
+./mvnw package -Dnative -Dquarkus.native.container-build=true
+docker build -f src/main/docker/Dockerfile.native -t mqtt-throughput-tester:native .
+```
+
+### Running in Docker
+
+```bash
+docker run -e MP_MESSAGING_OUTGOING_MQTT_THROUGHPUT_HOST=mqtt-broker \
+  -e MP_MESSAGING_OUTGOING_MQTT_THROUGHPUT_PORT=1883 \
+  -e MP_MESSAGING_OUTGOING_MQTT_THROUGHPUT_TOPIC=test/throughput \
+  -e THROUGHPUT_PAYLOAD_SIZE=1024 \
+  -e THROUGHPUT_MESSAGES_PER_SECOND=1000 \
+  mqtt-throughput-tester:jvm
+```
+
+## Usage Example
+
+1. **Start an MQTT broker** (if you don't have one):
+
+   ```bash
+   docker run -d -p 1883:1883 eclipse-mosquitto:2.0
+   ```
+
+2. **Configure the application** by editing `src/main/resources/application.properties`:
+
+   ```properties
+   mp.messaging.outgoing.mqtt-throughput.host=localhost
+   mp.messaging.outgoing.mqtt-throughput.port=1883
+   mp.messaging.outgoing.mqtt-throughput.topic=test/throughput
+   throughput.payload-size=1024
+   throughput.messages-per-second=1000
+   ```
+
+3. **Run the application**:
+
+   ```bash
+   ./mvnw quarkus:dev
+   ```
+
+4. **Monitor the output** for real-time statistics:
+
+   ```
+   Total: 1000 | Batch: 1000 in 995 ms | Rate: 1005 msg/s | Bandwidth: 0.98 MB/s
+   Total: 2000 | Batch: 1000 in 997 ms | Rate: 1003 msg/s | Bandwidth: 0.98 MB/s
+   Total: 3000 | Batch: 1000 in 998 ms | Rate: 1002 msg/s | Bandwidth: 0.98 MB/s
+   ```
+
+## Output Statistics
+
+The application logs periodic statistics showing:
+
+- **Total**: Total number of messages sent
+- **Batch**: Number of messages in the current batch and time taken
+- **Rate**: Actual message rate (messages per second)
+- **Bandwidth**: Data throughput (MB/s)
+
+Statistics are logged every `messages-per-second` messages by default.
+
+## Project Structure
+
+```
+.
+├── src/
+│   ├── main/
+│   │   ├── docker/          # Dockerfiles for different deployment modes
+│   │   ├── java/
+│   │   │   └── nl/nielsvn/
+│   │   │       └── ThroughputGenerator.java  # Main application logic
+│   │   └── resources/
+│   │       └── application.properties        # Configuration
+│   └── test/                                 # Tests
+├── pom.xml                  # Maven project configuration
+└── README.md                # This file
+```
+
+## Technology Stack
+
+- **Quarkus 3.30.2**: Supersonic Subatomic Java Framework
+- **SmallRye Reactive Messaging**: Reactive messaging framework
+- **MQTT**: Eclipse Paho MQTT client via SmallRye
+- **Java 21**: Latest LTS Java version
+
+## Performance Tips
+
+1. **Use QoS 0** for maximum throughput (default setting)
+2. **Increase inflight queue size** for high-throughput scenarios
+3. **Use native executable** for best performance
+4. **Tune JVM settings** when running in JVM mode:
+   ```bash
+   java -XX:+UseG1GC -Xmx512m -jar target/quarkus-app/quarkus-run.jar
+   ```
+5. **Adjust batch size** by changing `messages-per-second` to match your target rate
+
+## Troubleshooting
+
+### Connection Issues
+
+If the application fails to connect to the MQTT broker:
+
+- Verify the broker host and port are correct
+- Check firewall and network connectivity
+- Ensure the broker is running and accepting connections
+- Verify username/password if authentication is required
+
+### Performance Issues
+
+If the actual throughput is lower than configured:
+
+- Check broker capacity and configuration
+- Increase the `max-inflight-queue` setting
+- Monitor broker CPU and memory usage
+- Consider using native executable for better performance
+- Ensure network bandwidth is sufficient
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## License
+
+This project is available under the Apache License 2.0.
+
+## Learn More
+
+- [Quarkus](https://quarkus.io/)
+- [SmallRye Reactive Messaging](https://smallrye.io/smallrye-reactive-messaging/)
+- [MQTT Protocol](https://mqtt.org/)
+- [Eclipse Paho](https://www.eclipse.org/paho/)
