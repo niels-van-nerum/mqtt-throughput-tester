@@ -14,6 +14,12 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicLong;
 
+/**
+ * A component that generates a stream of MQTT messages to test throughput.
+ * <p>
+ * This class is responsible for creating a configurable number of messages per second, each with a specific payload size,
+ * and sending them to a configured MQTT broker. It also provides statistics on the message rate and bandwidth.
+ */
 @ApplicationScoped
 public class ThroughputGenerator {
     private static final Logger LOG = Logger.getLogger(ThroughputGenerator.class);
@@ -54,28 +60,47 @@ public class ThroughputGenerator {
 
         LOG.infof(
                 "Starting MQTT throughput generator: broker=%s:%d, topic=%s, payload=%d bytes, throughput=%d msg/s, stats=%s",
-                brokerHost, brokerPort, topic, payload.length, messagesPerSecond, statsEnabled, statsBatchSize
+                brokerHost, brokerPort, topic, payload.length, messagesPerSecond, statsEnabled
         );
     }
 
+    /**
+     * Generates a continuous stream of MQTT messages.
+     * <p>
+     * This method produces a {@link Multi} of {@link Message}s at a rate determined by the {@code messagesPerSecond}
+     * configuration property. Each message contains a randomly generated payload.
+     *
+     * @return A {@link Multi} of MQTT messages.
+     */
     @Outgoing("mqtt-throughput")
     public Multi<Message<byte[]>> generateStream() {
-        Duration interval = Duration.ofNanos(Math.max(1, (long) (1_000_000_000L / messagesPerSecond)));
+        // Calculate the interval between messages to achieve the desired throughput.
+        Duration interval = Duration.ofNanos(Math.max(1, 1_000_000_000L / messagesPerSecond));
 
         return Multi.createFrom().ticks().every(interval)
                 .onOverflow().drop()
-                .map(tick -> Message.of(payload)
-                        .withAck(() -> {
-                            long c = counter.incrementAndGet();
-                            if (statsEnabled && statsBatchSize > 0 && c % statsBatchSize == 0) {
-                                printStats(c);
-                            }
-                            return CompletableFuture.completedFuture(null);
-                        })
-                )
-                .onFailure().invoke(t -> LOG.error("MQTT throughput stream failed", t));
+                .map(tick -> Message.of(payload).withAck(this::handleMessageAcknowledgement))
+                .onFailure().invoke(throwable -> LOG.error("MQTT throughput stream failed", throwable));
     }
 
+    /**
+     * Handles the acknowledgement of a sent message and triggers statistics printing.
+     *
+     * @return A {@link CompletableFuture} that completes when the acknowledgement is handled.
+     */
+    private CompletableFuture<Void> handleMessageAcknowledgement() {
+        long currentCount = counter.incrementAndGet();
+        if (statsEnabled && statsBatchSize > 0 && currentCount % statsBatchSize == 0) {
+            printStats(currentCount);
+        }
+        return CompletableFuture.completedFuture(null);
+    }
+
+    /**
+     * Prints throughput statistics to the log.
+     *
+     * @param totalCount The total number of messages sent so far.
+     */
     private void printStats(long totalCount) {
         long now = System.currentTimeMillis();
         long diff = now - lastTime;
@@ -91,9 +116,15 @@ public class ThroughputGenerator {
         }
     }
 
+    /**
+     * Creates a byte array of a given size with random content.
+     *
+     * @param size The size of the byte array to create.
+     * @return A new byte array filled with random data.
+     */
     private static byte[] createPayload(int size) {
-        byte[] b = new byte[Math.max(0, size)];
-        ThreadLocalRandom.current().nextBytes(b);
-        return b;
+        byte[] bytes = new byte[Math.max(0, size)];
+        ThreadLocalRandom.current().nextBytes(bytes);
+        return bytes;
     }
 }
