@@ -1,62 +1,54 @@
-# test-smallrye-throughput
+# MQTT Throughput Tester
 
-This project uses Quarkus, the Supersonic Subatomic Java Framework.
+This project is a Quarkus-based application designed to generate a configurable stream of MQTT messages to test the throughput of an MQTT broker. It provides a simple REST API to start and stop the message generation.
 
-If you want to learn more about Quarkus, please visit its website: <https://quarkus.io/>.
+## Overview
 
-## Running the application in dev mode
+The application consists of two main parts:
 
-You can run your application in dev mode that enables live coding using:
+*   **ThroughputGenerator**: A component that generates MQTT messages at a configurable rate.
+*   **ThroughputResource**: A JAX-RS resource that exposes a REST API to control the generator.
 
-```shell script
+## Configuration
+
+The application can be configured via the `src/main/resources/application.properties` file. The following properties are available:
+
+| Property                              | Description                                       | Default Value |
+| ------------------------------------- | ------------------------------------------------- | ------------- |
+| `throughput.payload-size`             | The size of the message payload in bytes.         | `1024`        |
+| `throughput.messages-per-second`      | The number of messages to send per second.        | `1000`        |
+| `throughput.stats.enabled`            | Enable or disable the logging of statistics.      | `true`        |
+| `mp.messaging.outgoing.mqtt-throughput.host` | The hostname of the MQTT broker.                  | `localhost`   |
+| `mp.messaging.outgoing.mqtt-throughput.port` | The port of the MQTT broker.                      | `1883`        |
+| `mp.messaging.outgoing.mqtt-throughput.topic`| The MQTT topic to which messages are published.   | `throughput`  |
+
+## API
+
+The following endpoints are available to control the throughput generator:
+
+*   `POST /throughput/start`: Starts the message generation.
+*   `POST /throughput/stop`: Stops the message generation.
+*   `GET /throughput/status`: Returns the current status of the generator (running or not).
+
+### Example
+
+```shell
+# Start the generator
+curl -X POST http://localhost:8080/throughput/start
+
+# Check the status
+curl http://localhost:8080/throughput/status
+
+# Stop the generator
+curl -X POST http://localhost:8080/throughput/stop
+```
+
+## Running the application
+
+You can run the application in development mode with live coding using:
+
+```shell
 ./mvnw quarkus:dev
 ```
 
-> **_NOTE:_**  Quarkus now ships with a Dev UI, which is available in dev mode only at <http://localhost:8080/q/dev/>.
-
-## Packaging and running the application
-
-The application can be packaged using:
-
-```shell script
-./mvnw package
-```
-
-It produces the `quarkus-run.jar` file in the `target/quarkus-app/` directory.
-Be aware that it’s not an _über-jar_ as the dependencies are copied into the `target/quarkus-app/lib/` directory.
-
-The application is now runnable using `java -jar target/quarkus-app/quarkus-run.jar`.
-
-If you want to build an _über-jar_, execute the following command:
-
-```shell script
-./mvnw package -Dquarkus.package.jar.type=uber-jar
-```
-
-The application, packaged as an _über-jar_, is now runnable using `java -jar target/*-runner.jar`.
-
-## Creating a native executable
-
-You can create a native executable using:
-
-```shell script
-./mvnw package -Dnative
-```
-
-Or, if you don't have GraalVM installed, you can run the native executable build in a container using:
-
-```shell script
-./mvnw package -Dnative -Dquarkus.native.container-build=true
-```
-
-You can then execute your native executable with: `./target/test-smallrye-throughput-1.0-SNAPSHOT-runner`
-
-If you want to learn more about building native executables, please consult <https://quarkus.io/guides/maven-tooling>.
-
-## Provided Code
-
-### REST
-
-Easily start your REST Web Services
-
-[Related guide section...](https://quarkus.io/guides/getting-started-reactive#reactive-jax-rs-resources)
+The application will be available at `http://localhost:8080`.
