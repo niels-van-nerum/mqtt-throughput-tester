@@ -278,13 +278,13 @@ The test suite (`ThroughputGeneratorTest.java`) includes tests for:
 
 ### Integration Tests
 
-Integration tests can be run with:
+The project is configured to support integration tests through Maven's failsafe plugin. While no integration tests are currently implemented, the infrastructure is in place:
 
 ```bash
 ./mvnw verify
 ```
 
-Note: Integration tests are skipped by default (`skipITs=true` in `pom.xml`) and are enabled in the native profile.
+Note: Integration tests are skipped by default (`skipITs=true` in `pom.xml`) and would be enabled when running the native profile.
 
 ## Technology Stack
 
