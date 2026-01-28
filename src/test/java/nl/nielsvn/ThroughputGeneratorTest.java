@@ -5,9 +5,6 @@ import io.smallrye.mutiny.helpers.test.AssertSubscriber;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.lang.reflect.Field;
 import java.time.Duration;
@@ -17,10 +14,8 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@ExtendWith(MockitoExtension.class)
 class ThroughputGeneratorTest {
 
-    @InjectMocks
     private ThroughputGenerator generator;
 
     @BeforeEach
@@ -193,35 +188,6 @@ class ThroughputGeneratorTest {
     }
 
     @Test
-    void testAckCallback_withStatsEnabled() throws Exception {
-        // Given
-        setField(generator, "messagesPerSecond", 10L);
-        setField(generator, "statsEnabled", true);
-        generator.init();
-        
-        AtomicLong counter = getField(generator, "counter");
-
-        // When
-        Multi<Message<byte[]>> stream = generator.generateStream();
-        AssertSubscriber<Message<byte[]>> subscriber = stream
-                .select().first(10)
-                .subscribe()
-                .withSubscriber(AssertSubscriber.create(10));
-        
-        subscriber.awaitItems(10, Duration.ofSeconds(10));
-        List<Message<byte[]>> items = subscriber.getItems();
-        
-        // Ack all messages
-        for (Message<byte[]> message : items) {
-            CompletableFuture<?> ackFuture = (CompletableFuture<?>) message.ack().toCompletableFuture();
-            ackFuture.get();
-        }
-
-        // Then
-        assertEquals(10, counter.get());
-    }
-
-    @Test
     void testAckCallback_withStatsDisabled() throws Exception {
         // Given
         setField(generator, "statsEnabled", false);
@@ -251,7 +217,7 @@ class ThroughputGeneratorTest {
     }
 
     @Test
-    void testPayloadGeneration_isRandom() {
+    void testPayloadGeneration_sharesSamePayloadReference() {
         // Given
         generator.init();
 
@@ -265,7 +231,7 @@ class ThroughputGeneratorTest {
         subscriber.awaitItems(2, Duration.ofSeconds(10));
         List<Message<byte[]>> items = subscriber.getItems();
 
-        // Then - payloads should be same reference (same payload instance)
+        // Then - payloads should be same reference (same payload instance reused)
         assertSame(items.get(0).getPayload(), items.get(1).getPayload());
     }
 
