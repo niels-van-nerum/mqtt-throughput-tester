@@ -139,18 +139,32 @@ java -jar target/quarkus-app/quarkus-run.jar \
 
 Several Dockerfiles are provided for different deployment scenarios:
 
-#### JVM Container
+#### JVM Container (Recommended for Development)
 
 ```bash
 ./mvnw package
 docker build -f src/main/docker/Dockerfile.jvm -t mqtt-throughput-tester:jvm .
 ```
 
-#### Native Container
+#### Legacy JAR Container
+
+```bash
+./mvnw package
+docker build -f src/main/docker/Dockerfile.legacy-jar -t mqtt-throughput-tester:legacy-jar .
+```
+
+#### Native Container (Recommended for Production)
 
 ```bash
 ./mvnw package -Dnative -Dquarkus.native.container-build=true
 docker build -f src/main/docker/Dockerfile.native -t mqtt-throughput-tester:native .
+```
+
+#### Native Micro Container (Minimal Footprint)
+
+```bash
+./mvnw package -Dnative -Dquarkus.native.container-build=true
+docker build -f src/main/docker/Dockerfile.native-micro -t mqtt-throughput-tester:native-micro .
 ```
 
 ### Running in Docker
@@ -213,16 +227,64 @@ Statistics are logged every `messages-per-second` messages by default.
 .
 ├── src/
 │   ├── main/
-│   │   ├── docker/          # Dockerfiles for different deployment modes
+│   │   ├── docker/                           # Dockerfiles for different deployment modes
+│   │   │   ├── Dockerfile.jvm                # JVM-based container
+│   │   │   ├── Dockerfile.legacy-jar         # Legacy JAR container
+│   │   │   ├── Dockerfile.native             # Native executable container
+│   │   │   └── Dockerfile.native-micro       # Micro native container
 │   │   ├── java/
 │   │   │   └── nl/nielsvn/
 │   │   │       └── ThroughputGenerator.java  # Main application logic
 │   │   └── resources/
 │   │       └── application.properties        # Configuration
-│   └── test/                                 # Tests
-├── pom.xml                  # Maven project configuration
-└── README.md                # This file
+│   └── test/
+│       └── java/
+│           └── nl/nielsvn/
+│               └── ThroughputGeneratorTest.java  # Unit tests
+├── mvnw                                  # Maven wrapper script (Unix)
+├── mvnw.cmd                              # Maven wrapper script (Windows)
+├── pom.xml                               # Maven project configuration
+└── README.md                             # This file
 ```
+
+## Testing
+
+The project includes comprehensive unit tests for the `ThroughputGenerator` component.
+
+### Running Tests
+
+Execute the test suite using Maven:
+
+```bash
+./mvnw test
+```
+
+Or with the standard Maven command:
+
+```bash
+mvn test
+```
+
+### Test Coverage
+
+The test suite (`ThroughputGeneratorTest.java`) includes tests for:
+
+- Configuration initialization and validation
+- Payload generation with various sizes
+- Message stream creation and emission
+- Message acknowledgment and counter increments
+- Statistics batch size configuration
+- Edge cases (zero, negative, and extreme values)
+
+### Integration Tests
+
+The project is configured to support integration tests through Maven's failsafe plugin. While no integration tests are currently implemented, the infrastructure is in place:
+
+```bash
+./mvnw verify
+```
+
+Note: Integration tests are skipped by default (`skipITs=true` in `pom.xml`) and would be enabled when running the native profile.
 
 ## Technology Stack
 
@@ -230,6 +292,8 @@ Statistics are logged every `messages-per-second` messages by default.
 - **SmallRye Reactive Messaging**: Reactive messaging framework
 - **MQTT**: Eclipse Paho MQTT client via SmallRye
 - **Java 21**: Latest LTS Java version
+- **JUnit 5**: Testing framework
+- **SmallRye Mutiny**: Reactive programming library
 
 ## Performance Tips
 
