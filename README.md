@@ -241,10 +241,10 @@ Statistics are logged every `messages-per-second` messages by default.
 │       └── java/
 │           └── nl/nielsvn/
 │               └── ThroughputGeneratorTest.java  # Unit tests
-├── mvnw                     # Maven wrapper script (Unix)
-├── mvnw.cmd                 # Maven wrapper script (Windows)
-├── pom.xml                  # Maven project configuration
-└── README.md                # This file
+├── mvnw                                  # Maven wrapper script (Unix)
+├── mvnw.cmd                              # Maven wrapper script (Windows)
+├── pom.xml                               # Maven project configuration
+└── README.md                             # This file
 ```
 
 ## Testing
